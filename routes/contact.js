@@ -2,23 +2,26 @@ const express = require('express');
 const router = express.Router();
 const nodemailer = require('nodemailer');
 const asyncHandler = require('../middleware/asyncHandler');
+const dns = require('dns');
 
 const transporter = nodemailer.createTransport({
     host: 'smtp.gmail.com',
     port: 587,
-    secure: false, // Use STARTTLS
+    secure: false,
     auth: {
         user: process.env.EMAIL_USER,
         pass: process.env.EMAIL_PASS,
     },
+    lookup: (hostname, options, callback) => {
+        // Force IPv4 only
+        return dns.lookup(hostname, { family: 4 }, callback);
+    },
     tls: {
         rejectUnauthorized: false,
-        // Explicitly force IPv4
         minVersion: 'TLSv1.2'
     },
     connectionTimeout: 40000,
-    greetingTimeout: 40000,
-    family: 4 // Force IPv4 to avoid ENETUNREACH
+    greetingTimeout: 40000
 });
 
 // Verify connection configuration
