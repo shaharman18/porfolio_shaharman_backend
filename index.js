@@ -24,7 +24,10 @@ if (!dbURI) {
         .catch(err => console.error('MongoDB Connection Error:', err));
 }
 
-app.use(helmet());
+app.use(helmet({
+    contentSecurityPolicy: false,
+    crossOriginResourcePolicy: { policy: "cross-origin" }
+}));
 const allowedOrigins = [
     'http://localhost:5173',
     'http://127.0.0.1:5173',
