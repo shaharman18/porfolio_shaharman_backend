@@ -8,7 +8,7 @@ const mongoose = require('mongoose');
 const dns = require('dns');
 const helmet = require('helmet');
 
-dns.setServers(['8.8.8.8', '8.8.4.4']);
+// dns.setServers(['8.8.8.8', '8.8.4.4']); // Removed as it can interfere with Render networking
 dotenv.config();
 
 const app = express();
@@ -19,10 +19,21 @@ const dbURI = process.env.MONGODB_URI;
 if (!dbURI) {
     console.error('CRITICAL ERROR: MONGODB_URI is not defined in environment variables!');
 } else {
-    mongoose.connect(dbURI, { family: 4 })
-        .then(() => console.log('MongoDB Atlas Connected'))
-        .catch(err => console.error('MongoDB Connection Error:', err));
+    // Basic connection with logging
+    mongoose.connect(dbURI)
+        .then(() => console.log('✅ MongoDB Atlas Connected Successfully'))
+        .catch(err => {
+            console.error('❌ MongoDB Connection Error:', err.message);
+            // On Render/Production, if DB fails to connect, we want to know why
+        });
 }
+
+// Monitor DB connection state
+const db = mongoose.connection;
+db.on('error', console.error.bind(console, 'connection error:'));
+db.once('open', function () {
+    console.log("DB connection established");
+});
 
 app.use(helmet({
     contentSecurityPolicy: {
