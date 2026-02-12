@@ -10,6 +10,16 @@ const transporter = nodemailer.createTransport({
         pass: process.env.EMAIL_PASS,
     },
     tls: { rejectUnauthorized: false },
+    connectionTimeout: 10000, // 10 seconds timeout
+});
+
+// Verify connection configuration
+transporter.verify(function (error, success) {
+    if (error) {
+        console.error('❌ Nodemailer Verification Error:', error.message);
+    } else {
+        console.log('✅ Email Server is ready to take messages');
+    }
 });
 
 router.post('/', asyncHandler(async (req, res) => {
@@ -34,10 +44,16 @@ router.post('/', asyncHandler(async (req, res) => {
     };
 
     try {
+        console.log(`Attempting to send email from ${email}...`);
         await transporter.sendMail(mailOptions);
+        console.log('✅ Email sent successfully');
         res.json({ message: 'Message sent successfully!' });
     } catch (error) {
-        res.status(500).json({ message: 'Failed to send email', error: error.message });
+        console.error('❌ Nodemailer Error:', error.message);
+        res.status(500).json({
+            message: 'Failed to send email. Check server logs.',
+            error: error.message
+        });
     }
 }));
 
