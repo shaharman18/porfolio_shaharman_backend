@@ -64,6 +64,12 @@ app.use(cookieParser());
 
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
+app.get('/', (req, res) => {
+    res.send('Portfolio Backend Server is running...');
+});
+
+app.get('/favicon.ico', (req, res) => res.status(204).end());
+
 app.use('/api/projects', require('./routes/projects'));
 app.use('/api/resume', require('./routes/resume'));
 app.use('/api/contact', require('./routes/contact'));
