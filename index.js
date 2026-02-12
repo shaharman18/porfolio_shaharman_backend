@@ -9,14 +9,20 @@ const dns = require('dns');
 const helmet = require('helmet');
 
 dns.setServers(['8.8.8.8', '8.8.4.4']);
-dotenv.config({ path: path.join(__dirname, '.env') });
+dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 5001;
 
-mongoose.connect(process.env.MONGODB_URI, { family: 4 })
-    .then(() => console.log('MongoDB Atlas Connected'))
-    .catch(err => console.error('MongoDB Connection Error:', err));
+const dbURI = process.env.MONGODB_URI;
+
+if (!dbURI) {
+    console.error('CRITICAL ERROR: MONGODB_URI is not defined in environment variables!');
+} else {
+    mongoose.connect(dbURI, { family: 4 })
+        .then(() => console.log('MongoDB Atlas Connected'))
+        .catch(err => console.error('MongoDB Connection Error:', err));
+}
 
 app.use(helmet());
 const allowedOrigins = [
