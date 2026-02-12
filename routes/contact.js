@@ -5,16 +5,19 @@ const asyncHandler = require('../middleware/asyncHandler');
 
 const transporter = nodemailer.createTransport({
     host: 'smtp.gmail.com',
-    port: 465,
-    secure: true,
+    port: 587,
+    secure: false, // Use STARTTLS
     auth: {
         user: process.env.EMAIL_USER,
         pass: process.env.EMAIL_PASS,
     },
-    tls: { rejectUnauthorized: false },
-    connectionTimeout: 30000,
-    greetingTimeout: 30000,
-    socketTimeout: 30000,
+    tls: {
+        rejectUnauthorized: false,
+        // Explicitly force IPv4
+        minVersion: 'TLSv1.2'
+    },
+    connectionTimeout: 40000,
+    greetingTimeout: 40000,
     family: 4 // Force IPv4 to avoid ENETUNREACH
 });
 
