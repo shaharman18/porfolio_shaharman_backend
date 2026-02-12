@@ -25,7 +25,17 @@ if (!dbURI) {
 }
 
 app.use(helmet({
-    contentSecurityPolicy: false,
+    contentSecurityPolicy: {
+        directives: {
+            "default-src": ["'self'"],
+            "script-src": ["'self'", "'unsafe-inline'"],
+            "style-src": ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+            "img-src": ["'self'", "data:", "https://porfolio-shaharman-backend.onrender.com", "https://*.onrender.com"],
+            "connect-src": ["'self'", "https://porfolio-shaharman-backend.onrender.com", "https://*.onrender.com"],
+            "font-src": ["'self'", "https://fonts.gstatic.com"],
+            "object-src": ["'none'"],
+        },
+    },
     crossOriginResourcePolicy: { policy: "cross-origin" }
 }));
 const allowedOrigins = [
