@@ -19,8 +19,24 @@ mongoose.connect(process.env.MONGODB_URI, { family: 4 })
     .catch(err => console.error('MongoDB Connection Error:', err));
 
 app.use(helmet());
+const allowedOrigins = [
+    'http://localhost:5173',
+    'http://127.0.0.1:5173',
+    'http://localhost:5001',
+    'http://localhost:5000',
+    process.env.CLIENT_URL // Add this for Vercel deployment
+].filter(Boolean);
+
 app.use(cors({
-    origin: ['http://localhost:5173', 'http://127.0.0.1:5173', 'http://localhost:5001', 'http://localhost:5000'],
+    origin: function (origin, callback) {
+        // allow requests with no origin (like mobile apps or curl requests)
+        if (!origin) return callback(null, true);
+        if (allowedOrigins.indexOf(origin) === -1) {
+            const msg = 'The CORS policy for this site does not allow access from the specified Origin.';
+            return callback(new Error(msg), false);
+        }
+        return callback(null, true);
+    },
     credentials: true
 }));
 
