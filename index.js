@@ -90,6 +90,8 @@ app.get('/', (req, res) => {
 
 app.get('/favicon.ico', (req, res) => res.status(204).end());
 
+app.get('/api/health', (req, res) => res.json({ status: 'ok', message: 'Server is awake' }));
+
 app.use('/api/projects', require('./routes/projects'));
 app.use('/api/resume', require('./routes/resume'));
 app.use('/api/contact', require('./routes/contact'));
