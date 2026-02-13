@@ -7,29 +7,10 @@ const Resume = require('../models/Resume');
 const { protect } = require('../middleware/auth');
 const asyncHandler = require('../middleware/asyncHandler');
 
-const uploadDir = 'uploads/';
-
-// Ensure directory exists
-if (!fs.existsSync(uploadDir)) {
-    fs.mkdirSync(uploadDir);
-}
-
-// Configure Multer for disk storage
-const storage = multer.diskStorage({
-    destination: function (req, file, cb) {
-        cb(null, uploadDir);
-    },
-    filename: function (req, file, cb) {
-        // We use a timestamped name OR a fixed name. 
-        // User wants "previous should be delete", so timestamped is better for cache busting, 
-        // then we manually delete old ones.
-        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-        cb(null, 'resume-' + uniqueSuffix + path.extname(file.originalname));
-    }
-});
-
+// Use memory storage so the file buffer is available for storing in MongoDB
+// This is critical for Render/Heroku where the filesystem is ephemeral
 const upload = multer({
-    storage: storage,
+    storage: multer.memoryStorage(),
     limits: { fileSize: 5 * 1024 * 1024 },
     fileFilter: function (req, file, cb) {
         if (path.extname(file.originalname).toLowerCase() !== '.pdf') {
@@ -40,21 +21,29 @@ const upload = multer({
 });
 
 // @route   GET /api/resume
+// Returns resume metadata (without the binary data)
 router.get('/', asyncHandler(async (req, res) => {
-    const resume = await Resume.findOne().sort({ createdAt: -1 });
+    const resume = await Resume.findOne().sort({ createdAt: -1 }).select('-data');
     if (!resume) return res.json(null);
     res.json(resume);
 }));
 
-// Route to view the resume (can now point directly to static /uploads or through this)
+// @route   GET /api/resume/view
+// Serves the PDF directly from MongoDB buffer
 router.get('/view', asyncHandler(async (req, res) => {
     const resume = await Resume.findOne().sort({ createdAt: -1 });
-    if (!resume) {
+    if (!resume || !resume.data) {
         res.status(404);
         throw new Error('Resume not found');
     }
-    // Redirect to the actual static file
-    res.redirect(resume.url);
+
+    res.set({
+        'Content-Type': resume.contentType || 'application/pdf',
+        'Content-Disposition': `inline; filename="${resume.fileName}"`,
+        'Content-Length': resume.data.length,
+        'Cache-Control': 'public, max-age=3600'
+    });
+    res.send(resume.data);
 }));
 
 // @route   POST /api/resume/upload
@@ -64,42 +53,26 @@ router.post('/upload', protect, upload.single('resume'), asyncHandler(async (req
         throw new Error('No file uploaded');
     }
 
-    // 1. CLEANUP FOLDER: Delete all other files in /uploads to keep it fresh
-    const files = fs.readdirSync(uploadDir);
-    for (const file of files) {
-        // Only delete file if it's NOT the one we just uploaded
-        if (file !== req.file.filename) {
-            const filePath = path.join(uploadDir, file);
-            if (fs.lstatSync(filePath).isFile()) {
-                fs.unlinkSync(filePath);
-            }
-        }
-    }
-
-    const url = `/uploads/${req.file.filename}`;
-
-    // 2. UPDATE DATABASE
+    // Store the PDF data directly in MongoDB (survives Render restarts)
     let resume = await Resume.findOne();
 
     if (resume) {
         resume.fileName = req.file.originalname;
-        resume.url = url;
-        // Clear buffer data if it exists from previous version
-        resume.data = undefined;
+        resume.url = '/api/resume/view';
+        resume.data = req.file.buffer;
         resume.contentType = req.file.mimetype;
         await resume.save();
     } else {
         resume = await Resume.create({
             fileName: req.file.originalname,
-            url,
+            url: '/api/resume/view',
             contentType: req.file.mimetype,
-            // We set data to something minimal or remove it from schema later
-            data: Buffer.from([])
+            data: req.file.buffer
         });
     }
 
     res.status(201).json({
-        message: 'Resume uploaded and folder cleaned successfully',
+        message: 'Resume uploaded successfully',
         fileName: resume.fileName,
         url: resume.url
     });
