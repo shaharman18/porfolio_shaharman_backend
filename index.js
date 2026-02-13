@@ -62,10 +62,8 @@ app.use(cors({
         // Allow requests with no origin (like mobile apps)
         if (!origin) return callback(null, true);
 
-        // Check if origin is in allowed list OR is a vercel subdomain
-        const isAllowed = allowedOrigins.includes(origin) ||
-            origin.endsWith('.vercel.app') ||
-            origin.includes('localhost');
+        // Check if origin is in allowed list
+        const isAllowed = allowedOrigins.includes(origin) || origin.includes('localhost');
 
         if (isAllowed) {
             callback(null, true);
