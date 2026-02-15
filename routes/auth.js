@@ -23,10 +23,13 @@ router.post('/login', asyncHandler(async (req, res) => {
             expiresIn: '30d'
         });
 
+        // Check for production OR Render environment
+        const isProduction = process.env.NODE_ENV === 'production' || process.env.NODE_ENV === 'Production';
+
         res.cookie('jwt', token, {
             httpOnly: true,
-            secure: true, // Must be true for sameSite: 'none'
-            sameSite: 'none', // Required for cross-site (Vercel to Render)
+            secure: isProduction,
+            sameSite: isProduction ? 'none' : 'lax',
             maxAge: 30 * 24 * 60 * 60 * 1000
         });
 
@@ -44,10 +47,12 @@ router.post('/login', asyncHandler(async (req, res) => {
 // @route   POST /api/auth/logout
 // @access  Private
 router.post('/logout', (req, res) => {
+    const isProduction = process.env.NODE_ENV === 'production' || process.env.NODE_ENV === 'Production';
+
     res.cookie('jwt', '', {
         httpOnly: true,
-        secure: true,
-        sameSite: 'none',
+        secure: isProduction,
+        sameSite: isProduction ? 'none' : 'lax',
         expires: new Date(0)
     });
     res.status(200).json({ message: 'Logged out successfully' });
